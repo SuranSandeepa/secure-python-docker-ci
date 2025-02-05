@@ -40,22 +40,22 @@ jobs:
         run: |
           docker build -t python-hello-world .
 
-      # Step 6: Install Docker CLI
-      - name: Install Docker CLI
+      # Step 6: Install Docker CLI and Docker Scout
+      - name: Install Docker CLI and Docker Scout
         run: |
           sudo apt-get update
-          sudo apt-get install docker-ce docker-ce-cli containerd.io
+          sudo apt-get install -y docker.io
 
-      # Step 7: Install Docker Scout (via Docker CLI)
-      - name: Install Docker Scout via Docker CLI
+      # Step 7: Install Docker Scout using Docker CLI
+      - name: Install Docker Scout
         run: |
-          docker plugin install docker-scout
+          sudo apt-get install -y docker-scout
 
-      # Step 8: Run Docker Scout to scan the image for security vulnerabilities
+      # Step 8: Scan Docker Image using Docker Scout
       - name: Scan Docker Image with Docker Scout
         run: |
           docker scout image python-hello-world
 
-      # Step 9: Clean up
+      # Step 9: Clean up Docker containers
       - name: Clean up Docker containers
         run: docker system prune -f
