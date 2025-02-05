@@ -1,43 +1,57 @@
-name: Security Scans
+name: CI Pipeline with Bandit and Docker Scout
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  security_analysis:
+  build-and-scan:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout Code
+      # Step 1: Checkout the code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # ✅ Install Bandit for Python security analysis
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      # Step 3: Install Bandit for security analysis
       - name: Install Bandit
-        run: pip install bandit
-
-      # ✅ Run Bandit Scan
-      - name: Run Bandit Security Scan
-        run: bandit -r .
-
-      # ✅ Set up Docker
-      - name: Set up Docker
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-          sudo apt-get install -y docker-compose
-          sudo systemctl enable docker
-          sudo systemctl start docker
+          pip install bandit
 
-      # ✅ Install Docker Scout
-      - name: Install Docker Scout CLI
-        run: |
-          curl -fsSL https://download.docker.com/linux/static/stable/amd64/docker-20.10.7.tgz | tar xzvf - --strip-components=1 -C /usr/local/bin
-          docker --version
-          docker scout --version
+      # Step 4: Run Bandit to check for security issues in the Python code
+      - name: Run Bandit Security Analysis
+        run: bandit -r app.py
 
-      # ✅ Build Docker Image
+      # Step 5: Set up Docker
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
       - name: Build Docker Image
-        run: docker build -t my-python-app:latest .
+        run: |
+          docker build -t python-hello-world .
 
-      # ✅ Scan Docker Image using Docker Scout
+      # Step 6: Install Docker Scout
+      - name: Install Docker Scout
+        run: |
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install docker-scout-cli
+
+      # Step 7: Run Docker Scout to scan the image for security vulnerabilities
       - name: Scan Docker Image with Docker Scout
-        run: docker scout cves my-python-app:latest
+        run: docker scout inspect python-hello-world
+
+      # Step 8: Clean up
+      - name: Clean up Docker containers
+        run: docker system prune -f
