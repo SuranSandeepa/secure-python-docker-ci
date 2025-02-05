@@ -1,0 +1,31 @@
+name: Security Checks
+
+on: [push, pull_request]
+
+jobs:
+  security_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Bandit Python Security Scan
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit Scan
+        run: bandit app.py || exit 1
+
+      # Docker Scout Scan
+      - name: Install Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub Securely
+        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Build Docker Image
+        run: docker build -t my-python-app .
+
+      - name: Run Docker Scout Scan
+        run: docker scout quickview my-python-app || exit 1
